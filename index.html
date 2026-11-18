@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ClimaQuest - Domina los Climogramas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Nunito (estilo redondeado y amigable tipo Duolingo) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Canvas Confetti para celebración -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f7f9fa;
+            color: #3c3c3c;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Altura dinámica para navegadores móviles */
+        .min-h-dvh-screen {
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        /* Estilo de Botones 3D Táctiles tipo Duolingo */
+        .duo-btn {
+            transition: all 0.1s ease;
+            border-width: 2px;
+            border-bottom-width: 4px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .duo-btn:active:not(:disabled) {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+        }
+        .duo-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Variantes de color para botones 3D */
+        .duo-btn-green {
+            background-color: #58cc02;
+            border-color: #46a302;
+            color: white;
+        }
+        .duo-btn-green:hover:not(:disabled) {
+            background-color: #61e002;
+        }
+
+        .duo-btn-blue {
+            background-color: #1cb0f6;
+            border-color: #1899d6;
+            color: white;
+        }
+        .duo-btn-blue:hover:not(:disabled) {
+            background-color: #20bcff;
+        }
+
+        .duo-btn-red {
+            background-color: #ff4b4b;
+            border-color: #ea2b2b;
+            color: white;
+        }
+
+        .duo-btn-gold {
+            background-color: #ffc800;
+            border-color: #e5a400;
+            color: #4b3600;
+        }
+
+        .duo-btn-white {
+            background-color: #ffffff;
+            border-color: #e5e5e5;
+            color: #4b4b4b;
+        }
+        .duo-btn-white:hover:not(:disabled) {
+            background-color: #f7f7f7;
+            border-color: #d4d4d4;
+        }
+
+        /* Estados de selección en opciones */
+        .option-selected {
+            background-color: #ddf4ff !important;
+            border-color: #1cb0f6 !important;
+            color: #1899d6 !important;
+        }
+        .option-correct {
+            background-color: #d7ffb8 !important;
+            border-color: #58cc02 !important;
+            color: #46a302 !important;
+        }
+        .option-wrong {
+            background-color: #ffdfe0 !important;
+            border-color: #ff4b4b !important;
+            color: #ea2b2b !important;
+        }
+
+        /* Nodos del Camino de Aprendizaje */
+        .level-node {
+            width: 82px;
+            height: 76px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.15s ease;
+        }
+        .level-node-unlocked {
+            box-shadow: 0 7px 0 var(--shadow-color);
+            cursor: pointer;
+        }
+        .level-node-unlocked:active {
+            transform: translateY(5px);
+            box-shadow: 0 2px 0 var(--shadow-color);
+        }
+        .level-node-locked {
+            background-color: #e5e5e5;
+            box-shadow: 0 7px 0 #afafaf;
+            color: #afafaf;
+            cursor: not-allowed;
+        }
+
+        /* Animación de pulso para nivel actual */
+        @keyframes floatPulse {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        /* Panel inferior deslizante con soporte safe-area móvil */
+        .feedback-drawer {
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+        .feedback-hidden {
+            transform: translateY(105%);
+        }
+        .feedback-visible {
+            transform: translateY(0%);
+        }
+
+        .safe-bottom-bar {
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        }
+    </style>
+</head>
+<body class="min-h-dvh-screen flex flex-col">
+
+    <!-- ==================== BARRA SUPERIOR GLOBAL (HOME) ==================== -->
+    <header id="home-header" class="sticky top-0 z-30 bg-white border-b-2 border-gray-200 px-3 sm:px-4 py-2.5 sm:py-3">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#58cc02] flex items-center justify-center text-white text-lg sm:text-xl shadow-sm shrink-0">
+                    <i class="fa-solid fa-earth-americas"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-[#58cc02] leading-none">ClimaQuest</h1>
+                    <span class="text-[11px] sm:text-xs font-bold text-gray-400">8 Bioclimas</span>
+                </div>
+            </div>
+
+            <!-- Estadísticas del Jugador y Sonido -->
+            <div class="flex items-center gap-1.5 sm:gap-3">
+                <!-- Racha -->
+                <div class="flex items-center gap-1 bg-orange-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-orange-200" title="Mejor racha de aciertos">
+                    <i class="fa-solid fa-fire text-orange-500 text-sm sm:text-lg"></i>
+                    <span id="stat-streak" class="font-extrabold text-orange-600 text-xs sm:text-base">0</span>
+                </div>
+
+                <!-- XP Total -->
+                <div class="flex items-center gap-1 bg-sky-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-sky-200" title="Puntos de experiencia">
+                    <i class="fa-solid fa-bolt text-sky-500 text-sm sm:text-lg"></i>
+                    <span id="stat-xp" class="font-extrabold text-sky-600 text-xs sm:text-base">0 XP</span>
+                </div>
+
+                <!-- Coronas -->
+                <div class="flex items-center gap-1 bg-amber-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-amber-200" title="Coronas conseguidas">
+                    <i class="fa-solid fa-crown text-amber-500 text-sm sm:text-lg"></i>
+                    <span id="stat-crowns" class="font-extrabold text-amber-600 text-xs sm:text-base">0/12</span>
+                </div>
+
+                <!-- Botón Sonido -->
+                <button id="btn-sound-toggle" onclick="toggleSound()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:text-sky-500 flex items-center justify-center text-sm transition shrink-0" title="Activar/Desactivar sonido">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== VISTA 1: MAPA DE NIVELES (CAMINO DE APRENDIZAJE) ==================== -->
+    <main id="home-view" class="flex-1 max-w-2xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 overflow-x-hidden">
+        
+        <!-- Banner de Bienvenida / Guía Rápida de Gaussen -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl p-3.5 sm:p-4 mb-6 sm:mb-8 shadow-sm flex flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                    <i class="fa-solid fa-chart-column"></i>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="font-extrabold text-gray-800 text-sm sm:text-base truncate">Escala de Gaussen (1°C = 2mm)</h2>
+                    <p class="text-[11px] sm:text-sm text-gray-500 font-semibold leading-snug">
+                        Si la <span class="text-red-500 font-bold">línea roja</span> supera las <span class="text-blue-500 font-bold">barras azules</span>, ¡hay aridez!
+                    </p>
+                </div>
+            </div>
+            <button onclick="openGuideModal()" class="duo-btn duo-btn-white px-3 sm:px-4 py-2 rounded-xl font-extrabold text-xs uppercase tracking-wider shrink-0">
+                <i class="fa-solid fa-book-open sm:mr-1 text-sky-500"></i> <span class="hidden xs:inline sm:inline">Chuleta</span>
+            </button>
+        </div>
+
+        <!-- Contenedor del Camino de Niveles -->
+        <div id="levels-container" class="flex flex-col items-center space-y-6 sm:space-y-8 relative">
+            <!-- Se genera dinámicamente con JS -->
+        </div>
+
+        <!-- Botón de Reiniciar Progreso -->
+        <div class="mt-12 sm:mt-14 pt-6 border-t border-gray-200 flex justify-center">
+            <button onclick="openResetModal()" class="text-xs font-bold text-gray-400 hover:text-red-500 transition flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-red-50">
+                <i class="fa-solid fa-rotate-left"></i> Reiniciar todo el progreso
+            </button>
+        </div>
+    </main>
+
+    <!-- ==================== VISTA 2: PANTALLA DE LECCIÓN / QUIZ (MOBILE-FIRST) ==================== -->
+    <section id="quiz-view" class="hidden flex-1 flex flex-col bg-white min-h-dvh-screen">
+        
+        <!-- Barra Superior Compacta de Progreso de Lección -->
+        <div class="max-w-4xl w-full mx-auto px-3 sm:px-4 pt-3 sm:pt-5 pb-2 flex items-center gap-2.5 sm:gap-4 shrink-0">
+            <button onclick="confirmExitQuiz()" class="text-gray-400 hover:text-gray-600 text-xl sm:text-2xl p-1 transition shrink-0" title="Salir de la lección">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Barra verde brillante -->
+            <div class="flex-1 h-3.5 sm:h-4 bg-gray-200 rounded-full overflow-hidden p-0.5">
+                <div id="quiz-progress-bar" class="h-full bg-[#58cc02] rounded-full transition-all duration-500 ease-out relative" style="width: 0%">
+                    <div class="w-full h-1 bg-white/30 rounded-full mt-0.5"></div>
+                </div>
+            </div>
+
+            <!-- Racha actual en partida -->
+            <div id="quiz-streak-badge" class="hidden sm:flex items-center gap-1 text-orange-500 font-black text-sm shrink-0">
+                <i class="fa-solid fa-fire"></i> <span id="quiz-streak-count">0</span>
+            </div>
+
+            <!-- Vidas (Corazones) -->
+            <div class="flex items-center gap-1 text-red-500 font-black text-base sm:text-lg shrink-0" id="quiz-hearts-container">
+                <i class="fa-solid fa-heart"></i>
+                <span id="quiz-hearts-count">3</span>
+            </div>
+        </div>
+
+        <!-- Contenido Principal del Ejercicio Optimizado para Móvil -->
+        <div class="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-4 py-1 sm:py-2 pb-28 sm:pb-36 flex flex-col justify-between sm:justify-center">
+            
+            <!-- Encabezado de la Pregunta Compacto -->
+            <div class="mb-2 sm:mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <div class="flex items-center justify-between sm:block">
+                    <span id="quiz-level-tag" class="inline-block text-[11px] sm:text-xs font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-purple-100 text-purple-700 sm:mb-1">
+                        Nivel 1
+                    </span>
+                    <button onclick="openGuideModal()" class="sm:hidden text-[11px] font-extrabold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-lg">
+                        <i class="fa-solid fa-book-open mr-1"></i>Chuleta
+                    </button>
+                    <h2 class="hidden sm:block text-xl sm:text-2xl font-black text-gray-800">
+                        ¿A qué bioclima pertenece este climograma?
+                    </h2>
+                </div>
+                <h2 class="sm:hidden text-base font-black text-gray-800 leading-tight">
+                    ¿Qué bioclima muestra este climograma?
+                </h2>
+                <!-- Pista opcional en Niveles 1 y 2 -->
+                <div id="quiz-hint-pill" class="hidden bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-lightbulb text-amber-500 shrink-0"></i>
+                    <span id="quiz-hint-text" class="leading-tight">Pista</span>
+                </div>
+            </div>
+
+            <!-- Grid Responsivo: Climograma y Cuadrícula de 8 Opciones -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-5 items-start">
+                
+                <!-- Tarjeta del Climograma SVG Compacta -->
+                <div class="lg:col-span-7 bg-white border-2 border-gray-200 rounded-2xl p-2 sm:p-4 shadow-sm">
+                    <!-- Fila horizontal compacta con las 3 métricas clave -->
+                    <div class="grid grid-cols-3 gap-1.5 mb-1.5 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-100 text-[11px] sm:text-xs text-center">
+                        <div class="font-extrabold text-red-600 bg-red-50 px-1.5 py-1 rounded-lg border border-red-100 truncate">
+                            <i class="fa-solid fa-temperature-half mr-0.5"></i>Media: <span id="chart-tma">--</span>°C
+                        </div>
+                        <div class="font-extrabold text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-100 truncate">
+                            <i class="fa-solid fa-droplet mr-0.5"></i>Total: <span id="chart-ptot">--</span>mm
+                        </div>
+                        <div class="font-extrabold text-gray-600 bg-gray-100 px-1.5 py-1 rounded-lg border border-gray-200 truncate">
+                            <i class="fa-solid fa-arrows-up-down mr-0.5"></i>Amp: <span id="chart-amp">--</span>°C
+                        </div>
+                    </div>
+
+                    <!-- Contenedor SVG del Climograma (altura máxima controlada en móvil) -->
+                    <div id="climograph-svg-container" class="w-full max-h-[205px] sm:max-h-none flex items-center justify-center overflow-hidden">
+                        <!-- SVG renderizado dinámicamente -->
+                    </div>
+
+                    <!-- Leyenda inferior compacta -->
+                    <div class="flex items-center justify-center gap-4 sm:gap-6 mt-1 sm:mt-2 text-[10px] sm:text-xs font-bold text-gray-500">
+                        <div class="flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-xs bg-[#3b82f6] inline-block"></span>
+                            <span>Precip. (mm)</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-3.5 h-0.5 bg-[#ef4444] inline-block relative">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#ef4444] absolute -top-[2px] left-1"></span>
+                            </span>
+                            <span>Temp. (°C)</span>
+                        </div>
+                        <div class="text-gray-400">
+                            Gaussen 1°C=2mm
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna de las 8 Opciones de Bioclimas (2 columnas en móvil, 1 o 2 en escritorio) -->
+                <div class="lg:col-span-5 grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-2" id="options-container">
+                    <!-- Botones generados dinámicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra Inferior Fija: Botón Comprobar (antes de responder) -->
+        <div id="check-bar" class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xs border-t-2 border-gray-200 px-3 pt-2.5 safe-bottom-bar z-20">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="hidden sm:block text-sm font-bold text-gray-400">
+                    Selecciona una de las 8 opciones para continuar
+                </div>
+                <button id="btn-check-answer" onclick="checkAnswer()" disabled class="duo-btn duo-btn-green w-full sm:w-auto sm:min-w-[200px] py-3 sm:py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider ml-auto">
+                    Comprobar
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel Deslizante de Feedback (Acierto / Fallo) -->
+        <div id="feedback-bar" class="fixed bottom-0 left-0 right-0 border-t-2 px-4 pt-3.5 sm:p-6 z-30 feedback-drawer feedback-hidden">
+            <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div class="flex items-start gap-3">
+                    <div id="feedback-icon" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl shrink-0 bg-white shadow-sm mt-0.5">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div>
+                        <h3 id="feedback-title" class="text-base sm:text-xl font-black leading-tight">¡Excelente!</h3>
+                        <p id="feedback-city" class="text-[11px] sm:text-xs font-extrabold uppercase tracking-wide opacity-80 mb-0.5 sm:mb-1"></p>
+                        <p id="feedback-explanation" class="text-xs sm:text-sm font-bold leading-snug max-w-2xl"></p>
+                    </div>
+                </div>
+                <button id="btn-next-question" onclick="nextQuestion()" class="duo-btn w-full sm:w-auto sm:min-w-[180px] py-3 sm:py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shrink-0">
+                    Continuar
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== VISTA 3: PANTALLA DE RESULTADOS DE LECCIÓN ==================== -->
+    <section id="results-view" class="hidden flex-1 flex flex-col items-center justify-center bg-white px-4 py-10 text-center">
+        <div class="max-w-md w-full">
+            <div id="result-badge-icon" class="w-28 h-28 mx-auto mb-5 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-6xl shadow-md">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <h2 id="result-title" class="text-3xl font-black text-gray-800 mb-2">¡Lección Completada!</h2>
+            <p id="result-subtitle" class="text-gray-500 font-bold mb-6">Has demostrado un gran dominio interpretando climogramas.</p>
+
+            <!-- Tarjetas de Resumen -->
+            <div class="grid grid-cols-3 gap-3 mb-8">
+                <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-3">
+                    <div class="text-xs font-extrabold text-sky-600 uppercase mb-1">XP Ganados</div>
+                    <div id="result-xp" class="text-2xl font-black text-sky-700">+50</div>
+                </div>
+                <div class="bg-green-50 border-2 border-green-200 rounded-2xl p-3">
+                    <div class="text-xs font-extrabold text-green-600 uppercase mb-1">Precisión</div>
+                    <div id="result-accuracy" class="text-2xl font-black text-green-700">100%</div>
+                </div>
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3">
+                    <div class="text-xs font-extrabold text-amber-600 uppercase mb-1">Coronas</div>
+                    <div id="result-crowns" class="text-2xl font-black text-amber-700">+1 <i class="fa-solid fa-crown text-base"></i></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="returnToHome()" class="duo-btn duo-btn-green w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider">
+                    Continuar al Mapa
+                </button>
+                <button id="btn-retry-level" onclick="retryCurrentLevel()" class="duo-btn duo-btn-white w-full py-3 rounded-2xl font-extrabold text-sm uppercase tracking-wider">
+                    Repetir Nivel
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== MODAL: CHULETA DE LOS 8 BIOCLIMAS ==================== -->
+    <div id="guide-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[88dvh] flex flex-col overflow-hidden shadow-2xl border-2 border-gray-200">
+            <div class="px-5 py-3.5 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-sky-500 text-lg sm:text-xl"></i>
+                    <h3 class="text-base sm:text-lg font-black text-gray-800">Guía de los 8 Bioclimas</h3>
+                </div>
+                <button onclick="closeGuideModal()" class="text-gray-400 hover:text-gray-700 text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-2.5 text-sm overscroll-contain" id="guide-content">
+                <!-- Se rellena con los 8 bioclimas -->
+            </div>
+            <div class="p-3.5 sm:p-4 border-t border-gray-200 bg-gray-50 flex justify-end shrink-0 safe-bottom-bar">
+                <button onclick="closeGuideModal()" class="duo-btn duo-btn-blue w-full sm:w-auto px-6 py-2.5 rounded-xl font-extrabold text-sm uppercase">
+                    ¡Entendido!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: CONFIRMACIÓN SALIR / REINICIAR ==================== -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border-2 border-gray-200">
+            <div id="confirm-modal-icon" class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirm-modal-title" class="text-xl font-black text-gray-800 mb-2">¿Seguro?</h3>
+            <p id="confirm-modal-text" class="text-sm font-bold text-gray-500 mb-6">Perderás el progreso de esta lección.</p>
+            <div class="flex flex-col gap-2.5">
+                <button id="confirm-modal-yes" class="duo-btn duo-btn-red w-full py-3 rounded-2xl font-black uppercase text-sm">
+                    Sí, continuar
+                </button>
+                <button onclick="closeConfirmModal()" class="duo-btn duo-btn-white w-full py-3 rounded-2xl font-extrabold uppercase text-sm">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           0. MOTOR DE EFECTOS DE SONIDO SINTETIZADOS (WEB AUDIO API)
+           ========================================================================== */
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function playTone(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'select') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // Do5
+                    osc.frequency.setValueAtTime(659.25, now + 0.09); // Mi5
+                    osc.frequency.setValueAtTime(783.99, now + 0.18); // Sol5
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(155, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                    osc.start(now);
+                    osc.stop(now + 0.28);
+                } else if (type === 'win') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'triangle';
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                        g.gain.setValueAtTime(0.13, now + idx * 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+                        o.start(now + idx * 0.1);
+                        o.stop(now + idx * 0.1 + 0.3);
+                    });
+                }
+            } catch (e) {
+                // Silenciar errores si el navegador bloquea audio
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-gray-400';
+            if (soundEnabled) playTone('select');
+        }
+
+        /* ==========================================================================
+           1. DEFINICIÓN DE LOS 8 BIOCLIMAS EXACTOS Y SUS METADATOS
+           ========================================================================== */
+        const BIOCLIMATES = [
+            {
+                id: 'ecuatorial',
+                label: 'Bioclima ecuatorial',
+                shortLabel: 'Ecuatorial',
+                icon: 'fa-tree',
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50',
+                summary: 'Temperaturas muy cálidas y constantes todo el año (~25-27 °C, amplitud < 3 °C). Lluvias muy abundantes (> 2000 mm) sin estación seca.'
+            },
+            {
+                id: 'tropical',
+                label: 'Bioclima tropical',
+                shortLabel: 'Tropical',
+                icon: 'fa-sun-plant-wilt',
+                color: 'text-amber-600',
+                bg: 'bg-amber-50',
+                summary: 'Temperaturas cálidas todo el año (ningún mes baja de 18 °C). Marcada alternancia entre estación muy lluviosa (verano) y estación seca (invierno).'
+            },
+            {
+                id: 'desertico',
+                label: 'Bioclima desértico',
+                shortLabel: 'Desértico',
+                icon: 'fa-sun',
+                color: 'text-orange-600',
+                bg: 'bg-orange-50',
+                summary: 'Precipitaciones muy escasas (< 250 mm anuales). La curva de temperatura supera las barras de lluvia casi todos los meses (aridez extrema).'
+            },
+            {
+                id: 'polar',
+                label: 'Bioclima polar',
+                shortLabel: 'Polar',
+                icon: 'fa-snowflake',
+                color: 'text-cyan-600',
+                bg: 'bg-cyan-50',
+                summary: 'Inviernos gélidos muy largos (hasta -30 °C) y veranos muy cortos donde ningún mes supera los 10 °C. Precipitaciones muy escasas (< 300 mm), en forma de nieve.'
+            },
+            {
+                id: 'mediterraneo',
+                label: 'Bioclima mediterráneo',
+                shortLabel: 'Mediterráneo',
+                icon: 'fa-lemon',
+                color: 'text-yellow-600',
+                bg: 'bg-yellow-50',
+                summary: 'Inviernos suaves y veranos calurosos. Su rasgo inconfundible es la SEQUÍA ESTIVAL (la curva roja supera las barras azules en los meses más cálidos).'
+            },
+            {
+                id: 'continental',
+                label: 'Bioclima continental',
+                shortLabel: 'Continental',
+                icon: 'fa-trees',
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                summary: 'Gran amplitud térmica anual (> 20 °C): inviernos muy fríos bajo 0 °C y veranos cálidos (> 18 °C). Precipitaciones moderadas concentradas en verano.'
+            },
+            {
+                id: 'oceanico',
+                label: 'Bioclima oceánico',
+                shortLabel: 'Oceánico',
+                icon: 'fa-cloud-rain',
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                summary: 'Temperaturas suaves todo el año (amplitud térmica baja, < 15 °C) sin heladas fuertes ni calor extremo. Lluvias abundantes y regulares todos los meses (sin sequía).'
+            },
+            {
+                id: 'alta_montana',
+                label: 'Bioclima de alta montaña',
+                shortLabel: 'Alta montaña',
+                icon: 'fa-mountain-sun',
+                color: 'text-violet-600',
+                bg: 'bg-violet-50',
+                summary: 'Temperaturas bajas todo el año por la altitud: varios meses bajo 0 °C en invierno y verano fresco (< 15 °C). Precipitaciones muy abundantes (> 1000-1500 mm), en forma de nieve en invierno.'
+            }
+        ];
+
+        /* ==========================================================================
+           2. BASE DE DATOS DE CLIMOGRAMAS REALES POR NIVELES
+           ========================================================================== */
+        const CLIMOGRAPHS_DB = [
+            // ---------------- NIVEL 1: PRIMEROS PASOS (Contrastados y claros) ----------------
+            {
+                id: 'manaos',
+                level: 1,
+                city: 'Manaos (Brasil)',
+                bioclimate: 'ecuatorial',
+                temps: [26.1, 26.0, 26.1, 26.3, 26.3, 26.4, 26.5, 27.0, 27.5, 27.6, 27.3, 26.7],
+                precips: [260, 288, 314, 300, 256, 114, 88, 58, 83, 126, 183, 217],
+                hint: 'Línea roja casi plana alrededor de 26-27 °C y lluvias torrenciales todo el año.',
+                explanation: 'Temperaturas muy altas y constantes todo el año (amplitud menor a 2 °C) con precipitaciones abundantes superiores a 2.200 mm: típico del bioclima ecuatorial.'
+            },
+            {
+                id: 'el_cairo',
+                level: 1,
+                city: 'El Cairo (Egipto)',
+                bioclimate: 'desertico',
+                temps: [13.6, 14.9, 17.7, 21.4, 24.9, 27.7, 28.4, 28.2, 26.6, 23.8, 19.3, 15.1],
+                precips: [5, 4, 4, 1, 1, 0, 0, 0, 0, 1, 3, 5],
+                hint: 'Barras azules casi inexistentes todo el año (menos de 30 mm en total).',
+                explanation: 'Con apenas 24 mm de lluvia al año y la línea de temperatura muy por encima de las barras en los 12 meses, estamos ante un bioclima desértico cálido.'
+            },
+            {
+                id: 'barrow',
+                level: 1,
+                city: 'Utqiaġvik / Barrow (Alaska)',
+                bioclimate: 'polar',
+                temps: [-25.2, -26.4, -25.1, -17.9, -6.4, 1.8, 4.7, 3.7, -0.3, -9.2, -18.7, -23.6],
+                precips: [3, 3, 2, 3, 3, 8, 22, 26, 18, 10, 4, 3],
+                hint: 'Temperaturas bajo cero 9 meses, verano < 5 °C y lluvias muy escasas (< 110 mm).',
+                explanation: 'Ningún mes supera los 10 °C, inviernos gélidos de -26 °C y precipitaciones muy escasas (105 mm): a diferencia de la alta montaña, el polar es muy seco.'
+            },
+            {
+                id: 'chamonix',
+                level: 1,
+                city: 'Chamonix-Mont-Blanc (Alpes, Francia - 1.035 m)',
+                bioclimate: 'alta_montana',
+                temps: [-2.1, -0.8, 3.2, 7.1, 11.4, 14.5, 16.6, 16.1, 12.6, 8.1, 2.5, -1.2],
+                precips: [115, 102, 98, 95, 118, 134, 138, 142, 112, 116, 118, 124],
+                hint: 'Invierno bajo cero (-2 °C), verano fresco (~16 °C) y lluvias muy abundantes (> 1.400 mm).',
+                explanation: 'Inviernos fríos bajo cero con nevadas, veranos frescos por la altitud y precipitaciones muy abundantes todo el año (1.412 mm): bioclima de alta montaña.'
+            },
+            {
+                id: 'riadh',
+                level: 1,
+                city: 'Riad (Arabia Saudita)',
+                bioclimate: 'desertico',
+                temps: [14.4, 16.9, 21.1, 26.9, 32.9, 35.4, 36.8, 36.5, 33.5, 28.2, 21.5, 16.1],
+                precips: [12, 8, 24, 23, 5, 0, 0, 0, 0, 1, 7, 13],
+                hint: 'Veranos extremos de más de 36 °C y precipitación total inferior a 100 mm anuales.',
+                explanation: 'Aridez extrema durante todo el año (93 mm totales) combinada con veranos tórridos de 36,8 °C caracterizan al bioclima desértico.'
+            },
+
+            // ---------------- NIVEL 2: CLIMAS TEMPLADOS Y MONTAÑA ----------------
+            {
+                id: 'sevilla',
+                level: 2,
+                city: 'Sevilla (España)',
+                bioclimate: 'mediterraneo',
+                temps: [10.9, 12.5, 15.6, 17.3, 20.7, 25.1, 28.2, 27.9, 25.0, 20.2, 15.1, 11.9],
+                precips: [66, 50, 36, 54, 31, 10, 2, 5, 27, 68, 91, 99],
+                hint: 'En junio, julio y agosto la línea roja queda muy por encima de las barras azules.',
+                explanation: 'Inviernos suaves (11 °C), veranos calurosos (28 °C) y una marcada sequía estival de junio a septiembre: el patrón clásico del bioclima mediterráneo.'
+            },
+            {
+                id: 'londres',
+                level: 2,
+                city: 'Londres (Reino Unido)',
+                bioclimate: 'oceanico',
+                temps: [5.2, 5.3, 7.6, 9.9, 13.3, 16.5, 18.7, 18.5, 15.7, 12.0, 8.0, 5.5],
+                precips: [55, 41, 42, 44, 49, 45, 45, 50, 49, 69, 59, 55],
+                hint: 'Lluvias repartidas todo el año y temperaturas suaves sin meses bajo cero.',
+                explanation: 'Amplitud térmica moderada (13,5 °C), inviernos frescos sin heladas fuertes (5,2 °C), veranos suaves y lluvias constantes los 12 meses: bioclima oceánico.'
+            },
+            {
+                id: 'moscu',
+                level: 2,
+                city: 'Moscú (Rusia)',
+                bioclimate: 'continental',
+                temps: [-6.5, -6.7, -1.0, 6.7, 13.2, 17.0, 19.2, 17.0, 11.3, 5.6, -1.2, -5.2],
+                precips: [52, 41, 35, 37, 49, 80, 85, 82, 68, 71, 55, 52],
+                hint: 'Gran contraste: enero (-6,7 °C) frente a julio (+19,2 °C) y máximo de lluvias en verano.',
+                explanation: 'Gran amplitud térmica anual (25,9 °C) con inviernos largos bajo cero y máximo de lluvias en verano: típico del bioclima continental.'
+            },
+            {
+                id: 'benasque',
+                level: 2,
+                city: 'Benasque / Pirineos (España - 1.138 m)',
+                bioclimate: 'alta_montana',
+                temps: [0.4, 1.5, 4.6, 6.8, 10.9, 15.1, 18.1, 17.7, 14.1, 9.4, 4.1, 1.0],
+                precips: [92, 78, 84, 112, 128, 105, 76, 84, 96, 118, 124, 108],
+                hint: 'Temperatura media anual baja (8,6 °C), inviernos cerca de 0 °C y más de 1.200 mm sin sequía estival.',
+                explanation: 'El descenso térmico por la altitud (media anual de 8,6 °C, inviernos fríos con nevadas) y unas precipitaciones elevadas todo el año (1.205 mm) sin aridez estival lo definen como bioclima de alta montaña.'
+            },
+            {
+                id: 'santander',
+                level: 2,
+                city: 'Santander (España)',
+                bioclimate: 'oceanico',
+                temps: [9.7, 9.8, 11.3, 12.4, 15.1, 17.8, 19.8, 20.3, 18.8, 16.1, 12.6, 10.5],
+                precips: [106, 92, 88, 102, 78, 58, 52, 73, 83, 120, 137, 124],
+                hint: 'Total anual superior a 1.100 mm, ningún mes con sequía y temperaturas muy suaves.',
+                explanation: 'Precipitaciones abundantes todo el año (1.113 mm) sin aridez estival y temperaturas muy suavizadas por el mar (mínima de 9,7 °C): bioclima oceánico.'
+            },
+            {
+                id: 'roma',
+                level: 2,
+                city: 'Roma (Italia)',
+                bioclimate: 'mediterraneo',
+                temps: [7.5, 8.2, 10.2, 12.6, 17.2, 21.1, 24.1, 24.5, 20.8, 16.4, 11.4, 8.4],
+                precips: [67, 73, 58, 81, 53, 34, 19, 37, 73, 113, 115, 81],
+                hint: 'Máximo de lluvias en otoño y mínimo claro en verano con temperaturas cálidas.',
+                explanation: 'Inviernos templados y húmedos, lluvias otoñales y verano seco donde la temperatura supera la precipitación en junio-agosto: bioclima mediterráneo.'
+            },
+
+            // ---------------- NIVEL 3: EXPLORADOR CLIMÁTICO (Tropical, Montaña Andina y Hemisferio Sur) ----------------
+            {
+                id: 'bombay',
+                level: 3,
+                city: 'Bombay / Mumbai (India)',
+                bioclimate: 'tropical',
+                temps: [24.5, 24.8, 26.9, 28.7, 30.2, 29.2, 27.7, 27.3, 27.7, 28.7, 28.0, 26.3],
+                precips: [1, 1, 0, 1, 11, 493, 840, 585, 341, 89, 10, 3],
+                hint: 'Calor todo el año (> 24 °C), invierno totalmente seco y monzón torrencial en verano.',
+                explanation: 'Temperaturas tropicales todo el año (media 27,5 °C) con estación seca invernal y lluvias monzónicas torrenciales en verano (> 2.300 mm): bioclima tropical.'
+            },
+            {
+                id: 'santiago_chile',
+                level: 3,
+                city: 'Santiago de Chile (Hemisferio Sur)',
+                bioclimate: 'mediterraneo',
+                temps: [20.9, 19.9, 17.6, 14.2, 11.1, 8.5, 8.1, 9.5, 11.5, 14.5, 17.3, 19.9],
+                precips: [1, 1, 3, 10, 42, 70, 86, 51, 22, 13, 9, 2],
+                hint: 'Hemisferio sur: los meses más cálidos son enero-febrero, y justo ahí está la sequía.',
+                explanation: 'Al estar en el hemisferio sur, el verano ocurre entre diciembre y marzo, coincidiendo con la sequía estival, mientras el invierno (junio-agosto) es suave y lluvioso: bioclima mediterráneo.'
+            },
+            {
+                id: 'davos',
+                level: 3,
+                city: 'Davos (Alpes Suizos - 1.594 m)',
+                bioclimate: 'alta_montana',
+                temps: [-4.9, -4.1, -0.7, 3.1, 8.0, 11.2, 13.2, 12.7, 9.3, 5.2, -0.6, -3.9],
+                precips: [68, 56, 62, 65, 92, 124, 138, 145, 98, 72, 74, 70],
+                hint: 'Inviernos bajo cero, verano fresco (máx. 13,2 °C) y > 1.000 mm de precipitación anual.',
+                explanation: 'A casi 1.600 m de altitud, las temperaturas son frías (5 meses bajo cero y verano fresco de 13,2 °C) con precipitaciones abundantes (1.064 mm) que lo diferencian del clima polar seco: bioclima de alta montaña.'
+            },
+            {
+                id: 'bamako',
+                level: 3,
+                city: 'Bamako (Malí)',
+                bioclimate: 'tropical',
+                temps: [25.1, 27.8, 30.2, 31.6, 31.4, 29.1, 26.8, 26.1, 26.6, 27.7, 26.5, 24.8],
+                precips: [1, 0, 4, 20, 56, 129, 231, 291, 198, 67, 4, 0],
+                hint: 'Todos los meses superan los 24 °C, con estación seca de noviembre a abril y lluvias en verano.',
+                explanation: 'Temperaturas muy cálidas todo el año (nunca bajan de 24 °C) con dos estaciones hídricas muy marcadas (seca en invierno y húmeda en verano): bioclima tropical.'
+            },
+            {
+                id: 'wellington',
+                level: 3,
+                city: 'Wellington (Nueva Zelanda)',
+                bioclimate: 'oceanico',
+                temps: [16.9, 17.2, 15.8, 13.7, 11.7, 9.7, 8.9, 9.4, 10.8, 12.0, 13.5, 15.4],
+                precips: [72, 62, 92, 100, 117, 147, 136, 123, 100, 115, 99, 86],
+                hint: 'Hemisferio sur, amplitud térmica muy suave (8,3 °C) y lluvias abundantes los 12 meses.',
+                explanation: 'Temperaturas oceánicas muy suaves todo el año (entre 8,9 °C en julio y 17,2 °C en febrero) y lluvias regulares superiores a 1.200 mm sin sequía: bioclima oceánico.'
+            },
+
+            // ---------------- NIVEL 4: MAESTRO METEORÓLOGO (Casos sutiles y extremos) ----------------
+            {
+                id: 'candanchu',
+                level: 4,
+                city: 'Candanchú / Sallent (Pirineos - 1.560 m)',
+                bioclimate: 'alta_montana',
+                temps: [-1.8, -1.2, 1.4, 3.8, 8.2, 12.4, 15.2, 14.9, 11.6, 7.1, 1.9, -1.1],
+                precips: [165, 148, 152, 175, 168, 115, 82, 88, 124, 178, 192, 180],
+                hint: 'Más de 1.700 mm de precipitación anual, 3 meses bajo cero y verano fresco (~15 °C).',
+                explanation: 'Precipitaciones hiperhúmedas (1.767 mm, gran parte en nieve invernal), temperaturas medias bajas (5,7 °C) con heladas invernales y verano fresco: bioclima de alta montaña.'
+            },
+            {
+                id: 'ulan_bator',
+                level: 4,
+                city: 'Ulán Bator (Mongolia)',
+                bioclimate: 'continental',
+                temps: [-21.6, -16.6, -7.4, 2.0, 10.1, 15.7, 18.2, 16.0, 9.6, 0.5, -11.9, -19.0],
+                precips: [2, 3, 4, 10, 21, 46, 73, 63, 31, 10, 6, 4],
+                hint: 'Invierno gélido (-21 °C), pero el verano sube hasta +18,2 °C (amplitud extrema de 40 °C).',
+                explanation: 'Aunque su invierno es gélido, el verano alcanza los 18,2 °C (superando el umbral de 10 °C del polar y los 15 °C típicos de alta montaña) con lluvias concentradas en verano: bioclima continental.'
+            },
+            {
+                id: 'nuuk',
+                level: 4,
+                city: 'Nuuk (Groenlandia)',
+                bioclimate: 'polar',
+                temps: [-8.2, -8.5, -8.0, -3.7, 0.6, 4.4, 6.8, 6.3, 3.5, -0.8, -4.1, -6.6],
+                precips: [55, 52, 50, 48, 53, 62, 82, 92, 96, 72, 69, 55],
+                hint: 'Ningún mes alcanza los 10 °C (verano máximo de 6,8 °C).',
+                explanation: 'Es un clima polar de tundra oceánica: el mes más cálido apenas llega a 6,8 °C (regla de Köppen: < 10 °C en verano), lo que impide el crecimiento de árboles: bioclima polar.'
+            },
+            {
+                id: 'toronto',
+                level: 4,
+                city: 'Toronto (Canadá)',
+                bioclimate: 'continental',
+                temps: [-4.2, -3.2, 1.3, 7.6, 14.2, 19.2, 22.2, 21.3, 17.0, 10.6, 4.8, -0.9],
+                precips: [61, 55, 53, 68, 82, 71, 74, 81, 85, 64, 84, 61],
+                hint: 'Inviernos bajo cero y veranos cálidos (> 22 °C) con amplitud térmica superior a 26 °C.',
+                explanation: 'Clima continental húmedo: aunque tiene precipitaciones regulares todo el año (839 mm), su elevada amplitud térmica (26,4 °C) e inviernos bajo cero lo distinguen del oceánico.'
+            },
+            {
+                id: 'lima',
+                level: 4,
+                city: 'Lima (Perú)',
+                bioclimate: 'desertico',
+                temps: [22.6, 23.2, 22.8, 21.1, 19.1, 17.6, 16.9, 16.6, 16.8, 17.7, 19.3, 21.3],
+                precips: [1, 0, 1, 0, 0, 1, 2, 2, 1, 0, 0, 1],
+                hint: 'Temperaturas muy suaves (16-23 °C) por la corriente fría de Humboldt, pero apenas 9 mm de lluvia al año.',
+                explanation: 'A pesar de tener temperaturas templadas y suaves todo el año por la corriente fría de Humboldt, la precipitación anual es de apenas 9 mm: bioclima desértico costero.'
+            },
+            {
+                id: 'zugspitze',
+                level: 4,
+                city: 'Zugspitze (Alpes Bávaros - 2.962 m)',
+                bioclimate: 'alta_montana',
+                temps: [-11.2, -11.4, -9.8, -6.9, -2.1, 1.1, 3.2, 3.3, 0.8, -2.8, -7.5, -10.3],
+                precips: [178, 155, 188, 172, 165, 192, 205, 198, 142, 125, 156, 174],
+                hint: '¡Ojo al total de lluvia! Temperaturas de alta cumbre pero con más de 2.000 mm de precipitación anual.',
+                explanation: 'A casi 3.000 m de altitud las temperaturas son muy bajas todo el año, pero a diferencia del clima polar (que es muy seco), recibe más de 2.050 mm de precipitación anual: bioclima de alta montaña.'
+            }
+        ];
+
+        /* ==========================================================================
+           3. CONFIGURACIÓN DE LOS 4 NIVELES PROGRESIVOS
+           ========================================================================== */
+        const LEVELS_CONFIG = [
+            {
+                id: 1,
+                title: 'Primeros Pasos',
+                subtitle: 'Climas contrastados y alta montaña',
+                icon: 'fa-seedling',
+                color: '#58cc02',
+                shadow: '#46a302',
+                showHints: true,
+                questionsCount: 4
+            },
+            {
+                id: 2,
+                title: 'Climas Templados',
+                subtitle: 'Mediterráneo, Oceánico, Continental y Montaña',
+                icon: 'fa-cloud-sun-rain',
+                color: '#1cb0f6',
+                shadow: '#1899d6',
+                showHints: true,
+                questionsCount: 5
+            },
+            {
+                id: 3,
+                title: 'Explorador Climático',
+                subtitle: 'Monzones, Alpes y Hemisferio Sur',
+                icon: 'fa-compass',
+                color: '#ce82ff',
+                shadow: '#a55eea',
+                showHints: false,
+                questionsCount: 5
+            },
+            {
+                id: 4,
+                title: 'Maestro Meteorólogo',
+                subtitle: 'Alta cumbre, anomalías y casos sutiles',
+                icon: 'fa-crown',
+                color: '#ff9600',
+                shadow: '#cc7800',
+                showHints: false,
+                questionsCount: 6
+            }
+        ];
+
+        /* ==========================================================================
+           4. ESTADO GLOBAL Y PERSISTENCIA EN LOCALSTORAGE
+           ========================================================================== */
+        const STORAGE_KEY = 'climaquest_save_v1';
+
+        let userState = {
+            xp: 0,
+            bestStreak: 0,
+            unlockedLevel: 1,
+            crowns: { 1: 0, 2: 0, 3: 0, 4: 0 } // Máximo 3 coronas por nivel
+        };
+
+        // Estado de la partida actual
+        let quizState = {
+            levelId: 1,
+            questions: [],
+            currentIndex: 0,
+            hearts: 3,
+            streak: 0,
+            correctCount: 0,
+            selectedOption: null,
+            answered: false
+        };
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    userState = { ...userState, ...parsed };
+                }
+            } catch (e) {
+                console.warn('No se pudo cargar localStorage:', e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+            } catch (e) {
+                console.warn('No se pudo guardar en localStorage:', e);
+            }
+        }
+
+        /* ==========================================================================
+           5. RENDERIZADO DEL MAPA DE NIVELES (HOME)
+           ========================================================================== */
+        function renderHome() {
+            // Actualizar cabecera
+            document.getElementById('stat-streak').textContent = userState.bestStreak;
+            document.getElementById('stat-xp').textContent = `${userState.xp} XP`;
+            const totalCrowns = Object.values(userState.crowns).reduce((a, b) => a + b, 0);
+            document.getElementById('stat-crowns').textContent = `${totalCrowns}/12`;
+
+            const container = document.getElementById('levels-container');
+            container.innerHTML = '';
+
+            // Desplazamientos horizontales para simular un camino serpenteante estilo Duolingo
+            const offsets = ['translate-x-0', '-translate-x-8 sm:-translate-x-12', 'translate-x-8 sm:translate-x-12', 'translate-x-0'];
+
+            LEVELS_CONFIG.forEach((lvl, idx) => {
+                const isUnlocked = lvl.id <= userState.unlockedLevel;
+                const isCurrent = lvl.id === userState.unlockedLevel;
+                const crownsEarned = userState.crowns[lvl.id] || 0;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `flex flex-col items-center relative ${offsets[idx % offsets.length]}`;
+
+                // Línea conectora hacia el siguiente nivel
+                if (idx < LEVELS_CONFIG.length - 1) {
+                    const connector = document.createElement('div');
+                    connector.className = `w-2 h-10 -mb-2 rounded-full ${lvl.id < userState.unlockedLevel ? 'bg-[#58cc02]' : 'bg-gray-200'}`;
+                    wrapper.appendChild(connector);
+                }
+
+                // Etiqueta flotante "¡EMPEZAR!" en el nivel activo actual
+                if (isCurrent) {
+                    const badge = document.createElement('div');
+                    badge.className = 'mb-2 bg-white border-2 border-gray-200 text-[#58cc02] font-black text-xs uppercase tracking-wider px-3 py-1 rounded-xl shadow-sm animate-float';
+                    badge.innerHTML = '¡Jugar ahora! <i class="fa-solid fa-caret-down ml-1"></i>';
+                    wrapper.prepend(badge);
+                }
+
+                // Botón circular del nodo
+                const nodeBtn = document.createElement('button');
+                if (isUnlocked) {
+                    nodeBtn.className = 'level-node level-node-unlocked text-white text-3xl';
+                    nodeBtn.style.backgroundColor = lvl.color;
+                    nodeBtn.style.setProperty('--shadow-color', lvl.shadow);
+                    nodeBtn.onclick = () => startLevel(lvl.id);
+                    nodeBtn.innerHTML = `<i class="fa-solid ${lvl.icon}"></i>`;
+                } else {
+                    nodeBtn.className = 'level-node level-node-locked text-2xl';
+                    nodeBtn.disabled = true;
+                    nodeBtn.innerHTML = `<i class="fa-solid fa-lock"></i>`;
+                }
+
+                // Estrellas / Coronas del nivel
+                const starsDiv = document.createElement('div');
+                starsDiv.className = 'flex items-center gap-1 mt-2.5';
+                for (let s = 1; s <= 3; s++) {
+                    const active = s <= crownsEarned;
+                    starsDiv.innerHTML += `<i class="fa-solid fa-crown text-sm ${active ? 'text-amber-400 drop-shadow-xs' : 'text-gray-300'}"></i>`;
+                }
+
+                // Título y subtítulo del nivel
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'text-center mt-1';
+                infoDiv.innerHTML = `
+                    <div class="font-black text-base ${isUnlocked ? 'text-gray-800' : 'text-gray-400'}">
+                        Nivel ${lvl.id}: ${lvl.title}
+                    </div>
+                    <div class="text-xs font-bold ${isUnlocked ? 'text-gray-500' : 'text-gray-400'}">
+                        ${lvl.subtitle}
+                    </div>
+                `;
+
+                // Reordenar: nodo arriba, estrellas e info abajo, conector al final
+                const mainBlock = document.createElement('div');
+                mainBlock.className = 'flex flex-col items-center';
+                if (isCurrent) {
+                    // Ya añadimos el badge arriba
+                    mainBlock.appendChild(wrapper.firstChild);
+                }
+                mainBlock.appendChild(nodeBtn);
+                mainBlock.appendChild(starsDiv);
+                mainBlock.appendChild(infoDiv);
+
+                wrapper.innerHTML = '';
+                wrapper.appendChild(mainBlock);
+
+                if (idx < LEVELS_CONFIG.length - 1) {
+                    const connector = document.createElement('div');
+                    connector.className = `w-2 h-8 mt-3 rounded-full ${lvl.id < userState.unlockedLevel ? 'bg-[#58cc02]' : 'bg-gray-200'}`;
+                    wrapper.appendChild(connector);
+                }
+
+                container.appendChild(wrapper);
+            });
+        }
+
+        /* ==========================================================================
+           6. RENDERIZADO DE CLIMOGRAMAS EN SVG (ESCALA DE GAUSSEN 1°C = 2mm)
+           ========================================================================== */
+        function renderClimographSVG(data) {
+            const months = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+            const temps = data.temps;
+            const precips = data.precips;
+
+            // Calcular estadísticas resumen
+            const tma = (temps.reduce((a, b) => a + b, 0) / 12).toFixed(1);
+            const ptot = precips.reduce((a, b) => a + b, 0);
+            const tMax = Math.max(...temps);
+            const tMin = Math.min(...temps);
+            const amp = (tMax - tMin).toFixed(1);
+
+            document.getElementById('chart-tma').textContent = tma.replace('.', ',');
+            document.getElementById('chart-ptot').textContent = ptot.toLocaleString('es-ES');
+            document.getElementById('chart-amp').textContent = amp.replace('.', ',');
+
+            // Dimensiones internas del viewBox SVG (proporción compacta ideal para móvil)
+            const W = 560;
+            const H = 265;
+            const padLeft = 46;
+            const padRight = 50;
+            const padTop = 18;
+            const padBottom = 30;
+            const plotW = W - padLeft - padRight;
+            const plotH = H - padTop - padBottom;
+
+            // Determinar límites respetando la Escala de Gaussen: 1 °C = 2 mm
+            // Si T_min < 0 (ej. Polar o Continental), bajamos el eje para alojar temperaturas negativas
+            const minTempNeeded = Math.min(0, Math.floor(tMin / 10) * 10);
+            const maxPrecipData = Math.max(...precips, 60);
+            const maxTempData = Math.max(...temps, 30);
+
+            // Escala superior en °C y mm (múltiplo de 10 °C / 20 mm)
+            // Limitamos visualmente si hay un monzón extremo (> 400 mm) para que no aplaste la curva térmica
+            const rawMaxTempAxis = Math.max(maxTempData + 5, Math.ceil(maxPrecipData / 2 / 10) * 10);
+            const maxTempAxis = Math.min(Math.max(rawMaxTempAxis, 40), 120); // Tope razonable
+            const maxPrecipAxis = maxTempAxis * 2;
+            const minPrecipAxis = minTempNeeded * 2;
+
+            const totalTempSpan = maxTempAxis - minTempNeeded;
+
+            // Funciones de mapeo a coordenadas Y
+            const tempToY = (t) => padTop + ((maxTempAxis - t) / totalTempSpan) * plotH;
+            const precipToY = (p) => {
+                // Si una barra monzónica supera el tope visual, la recortamos arriba con indicador
+                const clampedP = Math.min(p, maxPrecipAxis);
+                return padTop + ((maxPrecipAxis - clampedP) / (maxPrecipAxis - minPrecipAxis)) * plotH;
+            };
+            const zeroY = tempToY(0);
+
+            let svg = `<svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none" xmlns="http://www.w3.org/2000/svg">`;
+
+            // Fondo suave del área del gráfico
+            svg += `<rect x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="#fafafa" rx="4"/>`;
+
+            // Líneas de cuadrícula horizontales cada 10 °C (20 mm)
+            const stepT = totalTempSpan > 70 ? 20 : 10;
+            for (let t = minTempNeeded; t <= maxTempAxis; t += stepT) {
+                const y = tempToY(t);
+                const isZero = t === 0;
+                svg += `<line x1="${padLeft}" y1="${y}" x2="${padLeft + plotW}" y2="${y}" 
+                        stroke="${isZero ? '#94a3b8' : '#e2e8f0'}" 
+                        stroke-width="${isZero ? '1.8' : '1'}" 
+                        stroke-dasharray="${isZero ? '' : '3,3'}"/>`;
+
+                // Etiqueta eje izquierdo (°C)
+                svg += `<text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" font-size="11" font-weight="800" fill="#dc2626">${t}°</text>`;
+
+                // Etiqueta eje derecho (mm) - solo valores >= 0
+                if (t >= 0) {
+                    svg += `<text x="${padLeft + plotW + 8}" y="${y + 4}" text-anchor="start" font-size="11" font-weight="800" fill="#2563eb">${t * 2}</text>`;
+                }
+            }
+
+            // Títulos de ejes verticales
+            svg += `<text x="14" y="${padTop + plotH / 2}" transform="rotate(-90, 14, ${padTop + plotH / 2})" text-anchor="middle" font-size="11" font-weight="900" fill="#dc2626">Temp (°C)</text>`;
+            svg += `<text x="${W - 10}" y="${padTop + plotH / 2}" transform="rotate(90, ${W - 10}, ${padTop + plotH / 2})" text-anchor="middle" font-size="11" font-weight="900" fill="#2563eb">Precip (mm)</text>`;
+
+            const colW = plotW / 12;
+
+            // Dibujar Barras de Precipitación (Azules) y Etiquetas de Meses
+            months.forEach((m, i) => {
+                const xCenter = padLeft + colW * i + colW / 2;
+                const barW = colW * 0.64;
+                const barX = xCenter - barW / 2;
+                const pVal = precips[i];
+                const barTopY = precipToY(pVal);
+                const barHeight = Math.max(0, zeroY - barTopY);
+
+                // Barra azul
+                if (barHeight > 0) {
+                    svg += `<rect x="${barX}" y="${barTopY}" width="${barW}" height="${barHeight}" fill="#3b82f6" fill-opacity="0.82" rx="2"/>`;
+                }
+
+                // Si el valor supera el eje (ej. monzón en Bombay de 840 mm), mostrar valor numérico encima
+                if (pVal > maxPrecipAxis) {
+                    svg += `<text x="${xCenter}" y="${padTop - 5}" text-anchor="middle" font-size="9.5" font-weight="900" fill="#1d4ed8">${pVal}</text>`;
+                }
+
+                // Línea vertical sutil separadora de mes
+                if (i > 0) {
+                    svg += `<line x1="${padLeft + colW * i}" y1="${padTop}" x2="${padLeft + colW * i}" y2="${padTop + plotH}" stroke="#f1f5f9" stroke-width="1"/>`;
+                }
+
+                // Letra del mes en Eje X
+                svg += `<text x="${xCenter}" y="${H - 10}" text-anchor="middle" font-size="12" font-weight="800" fill="#475569">${m}</text>`;
+            });
+
+            // Dibujar Línea de Temperatura (Roja) y Puntos
+            let polylinePoints = [];
+            temps.forEach((t, i) => {
+                const xCenter = padLeft + colW * i + colW / 2;
+                const y = tempToY(t);
+                polylinePoints.push(`${xCenter},${y}`);
+            });
+
+            svg += `<polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#ef4444" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+            temps.forEach((t, i) => {
+                const xCenter = padLeft + colW * i + colW / 2;
+                const y = tempToY(t);
+                svg += `<circle cx="${xCenter}" cy="${y}" r="4.2" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>`;
+            });
+
+            svg += `<rect x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="none" stroke="#cbd5e1" stroke-width="1.5" rx="4"/>`;
+            svg += `</svg>`;
+
+            document.getElementById('climograph-svg-container').innerHTML = svg;
+        }
+
+        /* ==========================================================================
+           7. LÓGICA DE LA LECCIÓN / QUIZ
+           ========================================================================== */
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function startLevel(levelId) {
+            const config = LEVELS_CONFIG.find(l => l.id === levelId);
+            if (!config) return;
+
+            // Filtrar climogramas del nivel y barajarlos
+            const pool = CLIMOGRAPHS_DB.filter(c => c.level === levelId);
+            const selectedQuestions = shuffleArray(pool).slice(0, config.questionsCount);
+
+            quizState = {
+                levelId: levelId,
+                questions: selectedQuestions,
+                currentIndex: 0,
+                hearts: 3,
+                streak: 0,
+                correctCount: 0,
+                selectedOption: null,
+                answered: false
+            };
+
+            // Cambiar vistas
+            document.getElementById('home-header').classList.add('hidden');
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('results-view').classList.add('hidden');
+            document.getElementById('quiz-view').classList.remove('hidden');
+
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const config = LEVELS_CONFIG.find(l => l.id === quizState.levelId);
+            const q = quizState.questions[quizState.currentIndex];
+
+            quizState.selectedOption = null;
+            quizState.answered = false;
+
+            // Actualizar barra superior
+            const progressPct = (quizState.currentIndex / quizState.questions.length) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${progressPct}%`;
+            document.getElementById('quiz-hearts-count').textContent = quizState.hearts;
+
+            // Racha en vivo
+            const streakBadge = document.getElementById('quiz-streak-badge');
+            if (quizState.streak >= 2) {
+                streakBadge.classList.remove('hidden');
+                document.getElementById('quiz-streak-count').textContent = `${quizState.streak} seguidos`;
+            } else {
+                streakBadge.classList.add('hidden');
+            }
+
+            // Etiqueta de nivel y pista
+            document.getElementById('quiz-level-tag').textContent = `Nivel ${config.id} · Pregunta ${quizState.currentIndex + 1} de ${quizState.questions.length}`;
+            
+            const hintPill = document.getElementById('quiz-hint-pill');
+            if (config.showHints && q.hint) {
+                hintPill.classList.remove('hidden');
+                document.getElementById('quiz-hint-text').textContent = q.hint;
+            } else {
+                hintPill.classList.add('hidden');
+            }
+
+            // Renderizar Climograma SVG
+            renderClimographSVG(q);
+
+            // Renderizar las 8 opciones de Bioclimas (adaptadas a 2 columnas en móvil)
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            BIOCLIMATES.forEach((bio, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = `opt-btn-${bio.id}`;
+                btn.className = 'duo-btn duo-btn-white w-full min-h-[46px] px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl flex items-center justify-between text-left transition';
+                btn.onclick = () => selectOption(bio.id);
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl ${bio.bg} ${bio.color} flex items-center justify-center text-xs sm:text-sm shrink-0">
+                            <i class="fa-solid ${bio.icon}"></i>
+                        </div>
+                        <span class="font-extrabold text-xs sm:text-[15px] leading-tight">
+                            <span class="sm:hidden">${bio.shortLabel}</span>
+                            <span class="hidden sm:inline">${bio.label}</span>
+                        </span>
+                    </div>
+                    <span class="hidden sm:flex w-6 h-6 rounded-lg border-2 border-gray-200 text-gray-400 text-xs font-extrabold items-center justify-center shrink-0">
+                        ${index + 1}
+                    </span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            // Resetear barras inferiores
+            const checkBtn = document.getElementById('btn-check-answer');
+            checkBtn.disabled = true;
+            document.getElementById('check-bar').classList.remove('hidden');
+            
+            const fbBar = document.getElementById('feedback-bar');
+            fbBar.classList.remove('feedback-visible');
+            fbBar.classList.add('feedback-hidden');
+        }
+
+        function selectOption(bioclimateId) {
+            if (quizState.answered) return;
+
+            quizState.selectedOption = bioclimateId;
+            playTone('select');
+
+            // Actualizar estilos visuales
+            BIOCLIMATES.forEach(bio => {
+                const btn = document.getElementById(`opt-btn-${bio.id}`);
+                if (bio.id === bioclimateId) {
+                    btn.classList.add('option-selected');
+                } else {
+                    btn.classList.remove('option-selected');
+                }
+            });
+
+            document.getElementById('btn-check-answer').disabled = false;
+        }
+
+        function checkAnswer() {
+            if (!quizState.selectedOption || quizState.answered) return;
+            quizState.answered = true;
+
+            const q = quizState.questions[quizState.currentIndex];
+            const isCorrect = quizState.selectedOption === q.bioclimate;
+            const correctBioObj = BIOCLIMATES.find(b => b.id === q.bioclimate);
+
+            // Deshabilitar todos los botones y marcar correcto/incorrecto
+            BIOCLIMATES.forEach(bio => {
+                const btn = document.getElementById(`opt-btn-${bio.id}`);
+                btn.disabled = true;
+                btn.classList.remove('option-selected');
+
+                if (bio.id === q.bioclimate) {
+                    btn.classList.add('option-correct');
+                } else if (bio.id === quizState.selectedOption && !isCorrect) {
+                    btn.classList.add('option-wrong');
+                }
+            });
+
+            // Configurar panel de feedback
+            const fbBar = document.getElementById('feedback-bar');
+            const fbIcon = document.getElementById('feedback-icon');
+            const fbTitle = document.getElementById('feedback-title');
+            const fbCity = document.getElementById('feedback-city');
+            const fbExplanation = document.getElementById('feedback-explanation');
+            const nextBtn = document.getElementById('btn-next-question');
+
+            fbCity.textContent = `Estación meteorológica: ${q.city}`;
+            fbExplanation.textContent = q.explanation;
+
+            if (isCorrect) {
+                playTone('correct');
+                quizState.correctCount++;
+                quizState.streak++;
+                if (quizState.streak > userState.bestStreak) {
+                    userState.bestStreak = quizState.streak;
+                }
+
+                // Estilo verde brillante
+                fbBar.className = 'fixed bottom-0 left-0 right-0 border-t-2 border-[#b8f28b] bg-[#d7ffb8] text-[#46a302] px-4 pt-3.5 sm:p-6 z-30 feedback-drawer feedback-visible';
+                fbIcon.className = 'w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl shrink-0 bg-white text-[#58cc02] shadow-sm mt-0.5';
+                fbIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                
+                const praises = ['¡Excelente lectura!', '¡Clavado!', '¡Eres un crack del clima!', '¡Impecable!', '¡Bien visto!'];
+                fbTitle.textContent = praises[Math.floor(Math.random() * praises.length)];
+                
+                nextBtn.className = 'duo-btn duo-btn-green w-full sm:w-auto sm:min-w-[180px] py-3 sm:py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shrink-0';
+            } else {
+                playTone('wrong');
+                quizState.streak = 0;
+                quizState.hearts = Math.max(0, quizState.hearts - 1);
+                document.getElementById('quiz-hearts-count').textContent = quizState.hearts;
+
+                // Animar sacudida en corazones
+                const heartsContainer = document.getElementById('quiz-hearts-container');
+                heartsContainer.classList.add('animate-shake');
+                setTimeout(() => heartsContainer.classList.remove('animate-shake'), 450);
+
+                // Estilo rojo brillante
+                fbBar.className = 'fixed bottom-0 left-0 right-0 border-t-2 border-[#ffc1c1] bg-[#ffdfe0] text-[#ea2b2b] px-4 pt-3.5 sm:p-6 z-30 feedback-drawer feedback-visible';
+                fbIcon.className = 'w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl shrink-0 bg-white text-[#ff4b4b] shadow-sm mt-0.5';
+                fbIcon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                fbTitle.textContent = `Correcto: ${correctBioObj.label}`;
+
+                nextBtn.className = 'duo-btn duo-btn-red w-full sm:w-auto sm:min-w-[180px] py-3 sm:py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shrink-0';
+            }
+
+            // Actualizar barra de progreso
+            const progressPct = ((quizState.currentIndex + 1) / quizState.questions.length) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${progressPct}%`;
+
+            // Cambiar texto botón si se acabaron las vidas o es la última pregunta
+            if (quizState.hearts === 0) {
+                nextBtn.textContent = 'Ver Resultado';
+            } else if (quizState.currentIndex === quizState.questions.length - 1) {
+                nextBtn.textContent = 'Finalizar';
+            } else {
+                nextBtn.textContent = 'Continuar';
+            }
+
+            document.getElementById('check-bar').classList.add('hidden');
+        }
+
+        function nextQuestion() {
+            // Si perdió todas las vidas
+            if (quizState.hearts === 0) {
+                finishLesson(false);
+                return;
+            }
+
+            // Avanzar a la siguiente o terminar lección
+            if (quizState.currentIndex + 1 < quizState.questions.length) {
+                quizState.currentIndex++;
+                renderQuestion();
+            } else {
+                finishLesson(true);
+            }
+        }
+
+        function finishLesson(passed) {
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('results-view').classList.remove('hidden');
+
+            const totalQ = quizState.questions.length;
+            const accuracy = Math.round((quizState.correctCount / totalQ) * 100);
+            const badgeIcon = document.getElementById('result-badge-icon');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+
+            if (passed) {
+                playTone('win');
+                // Calcular XP y coronas
+                const earnedXp = quizState.correctCount * 15 + (quizState.hearts * 10);
+                userState.xp += earnedXp;
+
+                // Coronas según vidas restantes (3 vidas = 3 coronas, 2 = 2, 1 = 1)
+                const earnedCrowns = quizState.hearts;
+                const prevCrowns = userState.crowns[quizState.levelId] || 0;
+                if (earnedCrowns > prevCrowns) {
+                    userState.crowns[quizState.levelId] = earnedCrowns;
+                }
+
+                // Desbloquear siguiente nivel si procede
+                let unlockedNew = false;
+                if (quizState.levelId === userState.unlockedLevel && userState.unlockedLevel < LEVELS_CONFIG.length) {
+                    userState.unlockedLevel++;
+                    unlockedNew = true;
+                }
+
+                saveState();
+
+                badgeIcon.className = 'w-28 h-28 mx-auto mb-5 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-6xl shadow-md';
+                badgeIcon.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+                title.textContent = unlockedNew ? `¡Nivel ${userState.unlockedLevel} Desbloqueado!` : '¡Lección Completada!';
+                subtitle.textContent = unlockedNew
+                    ? 'Has superado el reto y abierto el siguiente tramo del mapa.'
+                    : '¡Gran trabajo! Sigue practicando para conseguir las 3 coronas.';
+
+                document.getElementById('result-xp').textContent = `+${earnedXp}`;
+                document.getElementById('result-accuracy').textContent = `${accuracy}%`;
+                document.getElementById('result-crowns').innerHTML = `${earnedCrowns}/3 <i class="fa-solid fa-crown text-base"></i>`;
+
+                // Lanzar confeti festivo
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 90,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+            } else {
+                // Sin vidas
+                saveState();
+
+                badgeIcon.className = 'w-28 h-28 mx-auto mb-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-6xl shadow-md';
+                badgeIcon.innerHTML = '<i class="fa-solid fa-heart-crack"></i>';
+                title.textContent = '¡Te quedaste sin vidas!';
+                subtitle.textContent = 'Repasa la chuleta de bioclimas e inténtalo de nuevo. ¡Tú puedes!';
+
+                const partialXp = quizState.correctCount * 5;
+                userState.xp += partialXp;
+                saveState();
+
+                document.getElementById('result-xp').textContent = `+${partialXp}`;
+                document.getElementById('result-accuracy').textContent = `${accuracy}%`;
+                document.getElementById('result-crowns').innerHTML = `0/3 <i class="fa-solid fa-crown text-base"></i>`;
+            }
+        }
+
+        function retryCurrentLevel() {
+            startLevel(quizState.levelId);
+        }
+
+        function returnToHome() {
+            document.getElementById('quiz-view').classList.add('hidden');
+            document.getElementById('results-view').classList.add('hidden');
+            document.getElementById('home-header').classList.remove('hidden');
+            document.getElementById('home-view').classList.remove('hidden');
+            renderHome();
+        }
+
+        /* ==========================================================================
+           8. MODALES Y ATAJOS DE TECLADO
+           ========================================================================== */
+        function openGuideModal() {
+            const content = document.getElementById('guide-content');
+            content.innerHTML = BIOCLIMATES.map(bio => `
+                <div class="p-3.5 rounded-2xl border-2 border-gray-100 bg-white flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl ${bio.bg} ${bio.color} flex items-center justify-center text-lg shrink-0 mt-0.5">
+                        <i class="fa-solid ${bio.icon}"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-black text-gray-800 text-base">${bio.label}</h4>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-600 leading-relaxed mt-0.5">${bio.summary}</p>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('guide-modal').classList.remove('hidden');
+        }
+
+        function closeGuideModal() {
+            document.getElementById('guide-modal').classList.add('hidden');
+        }
+
+        function confirmExitQuiz() {
+            document.getElementById('confirm-modal-title').textContent = '¿Abandonar lección?';
+            document.getElementById('confirm-modal-text').textContent = 'Si sales ahora perderás el progreso de esta partida.';
+            const yesBtn = document.getElementById('confirm-modal-yes');
+            yesBtn.textContent = 'Salir al mapa';
+            yesBtn.onclick = () => {
+                closeConfirmModal();
+                returnToHome();
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function openResetModal() {
+            document.getElementById('confirm-modal-title').textContent = '¿Reiniciar progreso?';
+            document.getElementById('confirm-modal-text').textContent = 'Se borrarán todos tus XP, coronas y niveles desbloqueados.';
+            const yesBtn = document.getElementById('confirm-modal-yes');
+            yesBtn.textContent = 'Sí, borrar todo';
+            yesBtn.onclick = () => {
+                localStorage.removeItem(STORAGE_KEY);
+                userState = {
+                    xp: 0,
+                    bestStreak: 0,
+                    unlockedLevel: 1,
+                    crowns: { 1: 0, 2: 0, 3: 0, 4: 0 }
+                };
+                closeConfirmModal();
+                renderHome();
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // Soporte de teclado estilo Duolingo (teclas 1-8 para elegir, Enter para comprobar/continuar)
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('quiz-view').classList.contains('hidden')) return;
+
+            if (e.key >= '1' && e.key <= '8' && !quizState.answered) {
+                const idx = parseInt(e.key, 10) - 1;
+                if (BIOCLIMATES[idx]) {
+                    selectOption(BIOCLIMATES[idx].id);
+                }
+            } else if (e.key === 'Enter') {
+                if (!quizState.answered && quizState.selectedOption) {
+                    checkAnswer();
+                } else if (quizState.answered) {
+                    nextQuestion();
+                }
+            }
+        });
+
+        /* ==========================================================================
+           9. INICIALIZACIÓN AL CARGAR LA PÁGINA
+           ========================================================================== */
+        window.onload = function () {
+            loadState();
+            renderHome();
+        };
+    </script>
+</body>
+</html>
